@@ -1,10 +1,14 @@
-import * as Express from "express";
 import * as http from "http";
 import * as path from "path";
-import * as morgan from "morgan";
-import { MsTeamsApiRouter, MsTeamsPageRouter } from "express-msteams-host";
 import * as debug from "debug";
-import * as appInsights from "applicationinsights";
+
+import * as Express from "express";
+// import * as proxy from "express-http-proxy";
+
+import { MsTeamsApiRouter, MsTeamsPageRouter } from "express-msteams-host";
+import * as allComponents from "./TeamsAppsComponents";
+
+// import * as appInsights from "applicationinsights";
 
 
 // Initialize debug logging module
@@ -18,15 +22,13 @@ require("dotenv").config();
 
 
 // Set up app insights
-appInsights.setup(process.env.APPINSIGHTS_INSTRUMENTATIONKEY).start();
+// appInsights.setup(process.env.APPINSIGHTS_INSTRUMENTATIONKEY).start();
 
 
 // The import of components has to be done AFTER the dotenv config
-import * as allComponents from "./TeamsAppsComponents";
 
 // Create the Express webserver
 const express = Express();
-const port = process.env.port || process.env.PORT || 3007;
 
 // Inject the raw request body onto the request object
 express.use(Express.json({
@@ -36,15 +38,12 @@ express.use(Express.json({
 }));
 express.use(Express.urlencoded({ extended: true }));
 
-// Express configuration
-express.set("views", path.join(__dirname, "/"));
+// express.use("/web/", proxy("localhost:3000"));
+// express.use("/static/", proxy("http://localhost:3000/static/"));
+
 
 // Add simple logging
-express.use(morgan("tiny"));
-
-// Add /scripts and /assets as static folders
-express.use("/scripts", Express.static(path.join(__dirname, "web/scripts")));
-express.use("/assets", Express.static(path.join(__dirname, "web/assets")));
+// express.use(morgan("tiny"));
 
 // routing for bots, connectors and incoming web hooks - based on the decorators
 // For more information see: https://www.npmjs.com/package/express-msteams-host
@@ -52,20 +51,27 @@ express.use(MsTeamsApiRouter(allComponents));
 
 // routing for pages for tabs and connector configuration
 // For more information see: https://www.npmjs.com/package/express-msteams-host
-express.use(MsTeamsPageRouter({
-    root: path.join(__dirname, "web/"),
-    components: allComponents
-}));
+// express.use(MsTeamsPageRouter({
+//     root: path.join(__dirname, "web/"),
+//     components: allComponents
+// }));
 
-// Set default web page
-express.use("/", Express.static(path.join(__dirname, "web/"), {
-    index: "index.html"
-}));
+// // Set default web page
+// express.use("/", Express.static(path.join(__dirname, "web/"), {
+//     index: "index.html"
+// }));
+
+express.get('test',(res,req,next)=>{
+    req.status(200).send('ok').end();
+    next()
+})
 
 // Set the port
+const port = process.env.port || process.env.PORT || 3007;
 express.set("port", port);
 
 // Start the webserver
 http.createServer(express).listen(port, () => {
     log(`Server running on ${port}`);
 });
+

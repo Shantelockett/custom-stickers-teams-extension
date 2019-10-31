@@ -1,8 +1,9 @@
 import { TurnContext, CardFactory } from "botbuilder";
-import { MessagingExtensionResult } from "botbuilder-teams";
 import { IMessagingExtensionMiddlewareProcessor, IMessagingExtensionActionRequest, ITaskModuleResult } from "botbuilder-teams-messagingextensions";
+import { MessagingExtensionResult } from "botbuilder-teams";
 
 import * as debug from "debug";
+
 // Initialize debug logging module
 const log = debug("msteams");
 
@@ -11,7 +12,7 @@ const log = debug("msteams");
  */
 export default class CollectMessageExtension implements IMessagingExtensionMiddlewareProcessor {
 
-    public async onFetchTask(context: TurnContext, value: IMessagingExtensionActionRequest): Promise<MessagingExtensionResult | ITaskModuleResult> {
+    public async onFetchTask(context: TurnContext, value: IMessagingExtensionActionRequest): Promise<ITaskModuleResult> {
         log("onFetchTask", value);
         const imgs = [];
 
@@ -62,9 +63,8 @@ export default class CollectMessageExtension implements IMessagingExtensionMiddl
         return Promise.resolve(result);
     }
 
-    onSubmitAction?(context: TurnContext, value: IMessagingExtensionActionRequest): Promise<MessagingExtensionResult> {
+    public async onSubmitAction(context: TurnContext, value: IMessagingExtensionActionRequest): Promise<MessagingExtensionResult> {
         // Handle the Action.Submit action on the adaptive card
-
         log('onSubmit', value);
 
         const result: MessagingExtensionResult = {

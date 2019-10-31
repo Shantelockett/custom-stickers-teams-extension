@@ -1,10 +1,9 @@
-import { BotDeclaration, MessageExtensionDeclaration, IBot, PreventIframe } from "express-msteams-host";
-import * as debug from "debug";
-import { DialogSet, DialogState } from "botbuilder-dialogs";
-import { StatePropertyAccessor, CardFactory, TurnContext, MemoryStorage, ConversationState, ActivityTypes } from "botbuilder";
+import { BotDeclaration, MessageExtensionDeclaration, IBot } from "express-msteams-host";
+import { TurnContext, MemoryStorage, ConversationState } from "botbuilder";
 import MyCollectionComposeExtension from "../messageExtension/MyCollection";
-import { TeamsContext, TeamsActivityProcessor } from "botbuilder-teams";
+import { TeamsActivityProcessor } from "botbuilder-teams";
 import CollectMessageExtension from "../messageExtension/Collect";
+import * as debug from "debug";
 
 // Initialize debug logging module
 const log = debug("msteams");

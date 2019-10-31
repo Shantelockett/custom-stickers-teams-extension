@@ -3,7 +3,7 @@
 // Licensed under the MIT license.
 
 // Load general config
-const config = require('./gulp.config');
+// const config = require('./gulp.config');
 
 // NodeJS
 const fs = require('fs'),
@@ -16,19 +16,15 @@ const {
     watch,
     series,
     parallel,
-    lastRun,
     task
 } = require('gulp');
 
 // gulp plugins
-const inject = require('gulp-inject'),
-    zip = require('gulp-zip'),
+const zip = require('gulp-zip'),
     replace = require('gulp-token-replace'),
     PluginError = require('plugin-error'),
-    gulpLoadPlugins = require('gulp-load-plugins'),
     del = require('del');
 
-const $ = gulpLoadPlugins();
 
 // Web Servers
 const ngrok = require('ngrok');
@@ -37,7 +33,7 @@ const ngrok = require('ngrok');
 const
     nodemon = require('nodemon'),
     argv = require('yargs').argv,
-    autoprefixer = require('autoprefixer'),
+    // autoprefixer = require('autoprefixer'),
     log = require('fancy-log'),
     ZSchema = require('z-schema'),
     request = require('request');
@@ -53,22 +49,6 @@ const isProd = process.env.NODE_ENV === 'production';
 const isTest = process.env.NODE_ENV === 'test';
 const isDev = !isProd && !isTest;
 
-const styles = () => {
-    return src('src/app/**/*.scss')
-        .pipe($.plumber())
-        .pipe($.if(!isProd, $.sourcemaps.init()))
-        .pipe($.sass.sync({
-            outputStyle: 'expanded',
-            precision: 10,
-            includePaths: ['.']
-        }).on('error', $.sass.logError))
-        .pipe($.postcss([
-            autoprefixer()
-        ]))
-        .pipe($.if(!isProd, $.sourcemaps.write()))
-        .pipe(dest('dist'));
-};
-
 /**
  * Register watches
  */
@@ -76,42 +56,14 @@ const watches = () => {
 
     // all other watches
     watch(
-        config.watches,
-        series('webpack:server')
+        "./src/**/*.*",
+        series('webpack')
     );
-
-    watch(
-        config.clientWatches,
-        series('webpack:client')
-    );
-
-    // watch for style changes
-    watch('src/app/**/*.scss', series('styles', 'static:copy', 'static:inject'))
-        .on('unlink', (a, b) => {
-
-            let cssFilename = path.basename(a, '.scss') + '.css',
-                cssDirectory = path.dirname(a).replace('src/app', './dist'),
-                cssPath = path.join(cssDirectory, cssFilename);
-
-            console.log(cssPath, fs.existsSync(cssPath));
-
-            if (fs.existsSync(cssPath)) {
-
-                fs.unlinkSync(cssPath);
-                injectSources();
-
-            }
-
-        });
 
     // watch on new and deleted files
-    watch(config.injectSources)
-        .on('unlink', injectSources)
-        .on('add', injectSources);
-
-
-    // watch for static files
-    watch(config.staticFiles, series('static:copy', 'static:inject'));
+    // watch(config.injectSources)
+    //     .on('unlink', injectSources)
+    //     .on('add', injectSources);
 }
 
 task('watch', watches);
@@ -126,8 +78,8 @@ task('nodemon', (callback) => {
     var debug = argv.debug !== undefined;
 
     return nodemon({
-        script: 'dist/server.js',
-        watch: ['dist/server.js'],
+        script: 'dist/index.js',
+        watch: ['dist/index.js'],
         nodeArgs: debug ? ['--inspect'] : []
     }).on('start', function () {
         if (!started) {
@@ -139,12 +91,12 @@ task('nodemon', (callback) => {
 });
 
 
-const _webpack = (idx, callback) => {
+const _webpack = (config, callback) => {
     const webpackConfig = require(
-        path.join(__dirname + '/webpack.config')
+        path.join(__dirname, config)
     )
 
-    webpack(webpackConfig[idx], (err, stats) => {
+    webpack(webpackConfig, (err, stats) => {
 
         if (err) throw new PluginError("webpack", err);
 
@@ -167,82 +119,26 @@ const _webpack = (idx, callback) => {
     });
 }
 
-/**
- * Webpack bundling
- */
-task('webpack:client', (callback) => {
-    _webpack(1, callback);
+task('webpack', (callback) => {
+    _webpack("webpack.config", callback);
 });
 
-task('webpack:server', (callback) => {
-    _webpack(0, callback);
-});
-
-task('webpack', parallel("webpack:client", "webpack:server"));
 
 
-/**
- * Copies static files
- */
-task('static:copy', () => {
-    return src(config.staticFiles, {
-        base: "./src/app"
-    })
-        .pipe(
-            dest('./dist/')
-        );
-});
 
-const injectSources = () => {
 
-    var injectSrc = src(config.injectSources);
-
-    var injectOptions = {
-        relative: false,
-        ignorePath: 'dist/web',
-        addRootSlash: true
-    };
-    return src(config.htmlFiles)
-        .pipe(replace({
-            tokens: {
-                ...process.env
-            }
-        }))
-        .pipe(
-            inject(injectSrc, injectOptions)
-        )
-        .pipe(
-            dest('./dist')
-        );
-
-};
-
-/**
- * Injects script into pages
- */
-task('static:inject', injectSources);
-
-/**
- * SASS compilation
- */
-task('styles', styles);
-
-/**
- * Build task, that uses webpack and injects scripts into pages
- */
-task('build', series('webpack', 'styles', 'static:copy', 'static:inject'));
 
 /**
  * Replace parameters in the manifest
  */
 task('generate-manifest', (cb) => {
-    return src('src/manifest/manifest.json')
+    return src('../manifest/manifest.json')
         .pipe(replace({
             tokens: {
                 ...process.env
             }
         }))
-        .pipe(dest(config.temp));
+        .pipe(dest('temp'));
 });
 
 /**
@@ -274,7 +170,10 @@ task('schema-validation', (callback) => {
 
         log('Using manifest schema ' + manifestJson.manifestVersion);
 
-        let definition = config.SCHEMAS.find(s => s.version == manifestJson.manifestVersion);
+        let definition = {
+            version: "1.5",
+            schema: "https://developer.microsoft.com/en-us/json-schemas/teams/v1.5/MicrosoftTeams.schema.json"
+        };
 
         if (definition === undefined) {
             callback(new PluginError("validate-manifest", "Unable to locate schema"));
@@ -359,16 +258,21 @@ task('start-ngrok', (cb) => {
  * Creates the tab manifest
  */
 task('zip', () => {
-    return src(config.manifests)
+    return src([
+        "./manifest/**/*.*",
+        '!**/manifest.json'
+    ])
         .pipe(src('./temp/manifest.json'))
-        .pipe(zip(config.manifestFileName))
-        .pipe(dest('package'));
+        .pipe(zip("custom-stickers.zip"))
+        .pipe(dest('../package'));
 });
 
-task('styles', styles);
+task('manifest', series('validate-manifest', 'zip'));
+/**
+ * Build task, that uses webpack and injects scripts into pages
+ */
+task('build', parallel('webpack', 'manifest'));
 
 task('serve', series('nuke', 'build', 'nodemon', 'watch'));
-
-task('manifest', series('validate-manifest', 'zip'));
 
 task('ngrok-serve', series('start-ngrok', 'manifest', 'serve'));
