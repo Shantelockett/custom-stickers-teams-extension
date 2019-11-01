@@ -4,7 +4,8 @@ import * as debug from "debug";
 import * as Express from "express";
 // import * as proxy from "express-http-proxy";
 
-import { MsTeamsApiRouter, MsTeamsPageRouter } from "express-msteams-host";
+import { MsTeamsApiRouter } from "express-msteams-host";
+import router from "./router";
 import * as allComponents from "./TeamsAppsComponents";
 
 // import * as appInsights from "applicationinsights";
@@ -48,6 +49,8 @@ express.use(Express.urlencoded({ extended: true }));
 // For more information see: https://www.npmjs.com/package/express-msteams-host
 express.use(MsTeamsApiRouter(allComponents));
 
+express.use("/api", router);
+
 // routing for pages for tabs and connector configuration
 // For more information see: https://www.npmjs.com/package/express-msteams-host
 // express.use(MsTeamsPageRouter({
@@ -60,10 +63,10 @@ express.use(MsTeamsApiRouter(allComponents));
 //     index: "index.html"
 // }));
 
-express.get('/ping', (res, req, next) => {
-    req.status(200).send('pong').end();
-    next()
-})
+express.get("/ping", (res, req, next) => {
+    req.status(200).send("pong").end();
+    next();
+});
 
 // Set the port
 const port = process.env.port || process.env.PORT || 3007;

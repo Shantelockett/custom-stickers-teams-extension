@@ -5,6 +5,7 @@ import { MessagingExtensionQuery, MessagingExtensionResult, MessagingExtensionAt
 import { IMessagingExtensionMiddlewareProcessor } from "botbuilder-teams-messagingextensions";
 import { Sticker, getUserStickers } from "../services/sticker";
 import { getConfigUrl } from "../config";
+import { getUserId } from "../util";
 
 // Initialize debug logging module
 const log = debug("msteams");
@@ -38,7 +39,7 @@ export default class MyCollectionComposeExtension implements IMessagingExtension
      * @param query 
      */
     public async onQuery(context: TurnContext, query: MessagingExtensionQuery): Promise<MessagingExtensionResult> {
-        const id = context.activity.from.id;
+        const id = getUserId(context);
         log("onQuery", id, query);
         try {
             const stickers = await getUserStickers(id);

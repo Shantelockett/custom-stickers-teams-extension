@@ -4,6 +4,7 @@ import { MessagingExtensionResult, TeamsAttachment, MessagingExtensionAttachment
 
 import * as debug from "debug";
 import { addUserStickers } from "../services/sticker";
+import { getUserId } from "../util";
 
 // Initialize debug logging module
 const log = debug("msteams");
@@ -46,7 +47,7 @@ export default class CollectMessageExtension implements IMessagingExtensionMiddl
      * @param value 
      */
     public async onFetchTask(context: TurnContext, value: IMessagingExtensionActionRequest): Promise<ITaskModuleResult> {
-        const id = context.activity.from.id;
+        const id = getUserId(context);
         log("onFetchTask", id);
         const imgs = getImages(value.messagePayload.body.content);
         const attachments: MessagingExtensionAttachment[] = value.messagePayload.attachments || [];

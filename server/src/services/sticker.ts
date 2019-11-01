@@ -28,10 +28,10 @@ function filterUserStickers(id: string, stickers: Pick<Sticker, 'name' | 'src'>[
  */
 export function addUserStickers(id: string, stickers: Pick<Sticker, 'name' | 'src'>[]): Promise<Sticker[]> {
     if (!id || !stickers || stickers.length === 0) {
-        return Promise.reject()
+        return Promise.reject("no stickers add")
     }
     return filterUserStickers(id, stickers).then(s => {
-        const saveStickers: Sticker[] = s.map(i => ({ ...i, id: '' + Math.random() }));
+        const saveStickers: Sticker[] = s.map(i => ({ id: '' + Math.random(), ...i, }));
         data.set(id, [...saveStickers, ...data.get(id) || []])
         return saveStickers;
     });
