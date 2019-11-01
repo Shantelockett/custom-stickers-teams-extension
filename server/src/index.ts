@@ -1,5 +1,4 @@
 import * as http from "http";
-import * as path from "path";
 import * as debug from "debug";
 
 import * as Express from "express";
@@ -61,8 +60,8 @@ express.use(MsTeamsApiRouter(allComponents));
 //     index: "index.html"
 // }));
 
-express.get('test',(res,req,next)=>{
-    req.status(200).send('ok').end();
+express.get('/ping', (res, req, next) => {
+    req.status(200).send('pong').end();
     next()
 })
 

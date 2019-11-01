@@ -1,88 +1,76 @@
 import * as debug from "debug";
 import { PreventIframe } from "express-msteams-host";
 import { TurnContext, CardFactory } from "botbuilder";
-import { MessagingExtensionQuery, MessagingExtensionResult } from "botbuilder-teams";
+import { MessagingExtensionQuery, MessagingExtensionResult, MessagingExtensionAttachment, MessagingExtensionSuggestedAction } from "botbuilder-teams";
 import { IMessagingExtensionMiddlewareProcessor } from "botbuilder-teams-messagingextensions";
+import { Sticker, getUserStickers } from "../services/sticker";
+import { getConfigUrl } from "../config";
 
 // Initialize debug logging module
 const log = debug("msteams");
 
-@PreventIframe("/mycollectionMessageExtension/config.html")
+
+/**
+ * 表情数据转成卡片资源
+ * @param sticker 
+ */
+function stickerToCard(sticker: Sticker): MessagingExtensionAttachment {
+    const card: MessagingExtensionAttachment = CardFactory.adaptiveCard({
+        type: "AdaptiveCard",
+        version: "1.0",
+        body: [{
+            url: sticker.src,
+            altText: sticker.name,
+            type: "Image",
+            spacing: "None",
+            horizontalAlignment: "center",
+        }]
+    });
+    card.preview = CardFactory.thumbnailCard(sticker.name || '', [sticker.src]);
+    return card;
+}
+
 export default class MyCollectionComposeExtension implements IMessagingExtensionMiddlewareProcessor {
 
+    /**
+     * 表情选择款弹出或者搜索
+     * @param context 
+     * @param query 
+     */
     public async onQuery(context: TurnContext, query: MessagingExtensionQuery): Promise<MessagingExtensionResult> {
-        log("onQuery", query);
-        const card = CardFactory.adaptiveCard(
-            {
-                type: "AdaptiveCard",
-                body: [
-                    {
-                        type: "TextBlock",
-                        size: "Large",
-                        text: "Headline"
-                    },
-                    {
-                        type: "TextBlock",
-                        text: "Description"
-                    },
-                    {
-                        type: "Image",
-                        url: `https://${process.env.HOSTNAME}/assets/icon.png`
-                    }
-                ],
-                actions: [
-                    {
-                        type: "Action.Submit",
-                        title: "More details",
-                        data: {
-                            action: "moreDetails",
-                            id: "1234-5678"
-                        }
-                    }
-                ],
-                $schema: "http://adaptivecards.io/schemas/adaptive-card.json",
-                version: "1.0"
-            });
-        const preview = {
-            contentType: "application/vnd.microsoft.card.thumbnail",
-            content: {
-                title: "Headline",
-                text: "Description",
-                images: [
-                    {
-                        url: `https://${process.env.HOSTNAME}/assets/icon.png`
-                    }
-                ]
+        const id = context.activity.from.id;
+        log("onQuery", id, query);
+        try {
+            const stickers = await getUserStickers(id);
+            return {
+                type: "result",
+                attachmentLayout: "grid",
+                attachments: stickers.map(stickerToCard)
+            };
+        } catch (error) {
+            return {
+                type: "config",
+                text: "upload",
+                suggestedActions: {
+                    actions: [{
+                        type: "openUrl",
+                        displayText: "上传",
+                        title: "upload stickers",
+                        image: "https://cataas.com/cat/gif",
+                        text: "UPLOAD",
+                        value: getConfigUrl(context)
+                    }]
+                } as MessagingExtensionSuggestedAction,
             }
-        };
-
-        if (query.parameters && query.parameters[0] && query.parameters[0].name === "initialRun") {
-            // initial run
-
-            return Promise.resolve({
-                type: "result",
-                attachmentLayout: "list",
-                attachments: [
-                    { ...card, preview }
-                ]
-            } as MessagingExtensionResult);
-        } else {
-            // the rest
-            return Promise.resolve({
-                type: "result",
-                attachmentLayout: "list",
-                attachments: [
-                    { ...card, preview }
-                ]
-            } as MessagingExtensionResult);
         }
     }
 
     // this is used when canUpdateConfiguration is set to true
     public async onQuerySettingsUrl(context: TurnContext): Promise<{ title: string, value: string }> {
+        // const id = context.activity.from.id;
         return Promise.resolve({
             title: "mycollection Configuration",
-            value: `https://${process.env.HOSTNAME}/mycollectionMessageExtension/config.html`
+            value: getConfigUrl(context)
         });
     }
 

@@ -259,7 +259,7 @@ task('start-ngrok', (cb) => {
  */
 task('zip', () => {
     return src([
-        "./manifest/**/*.*",
+        "../manifest/**/*.*",
         '!**/manifest.json'
     ])
         .pipe(src('./temp/manifest.json'))
